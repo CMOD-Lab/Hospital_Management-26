@@ -1,3 +1,5 @@
+using System.ComponentModel.DataAnnotations.Schema;
+
 namespace ClinicManagement.Domain.Entities;
 
 /// <summary>
@@ -7,7 +9,11 @@ public class Doctor
 {
     public int DoctorId { get; set; }
     public string Name { get; set; } = string.Empty;
+
+    [NotMapped]
     public string Email { get; set; } = string.Empty;
+
+    [NotMapped]
     public string Password { get; set; } = string.Empty;
     public DateTime BirthDate { get; set; }
     public int DeptNo { get; set; }
@@ -22,6 +28,8 @@ public class Doctor
     public float ReputeIndex { get; set; }
     public int PatientsTreated { get; set; }
     public bool Status { get; set; } = true;
+
+    [NotMapped]
     public DateTime CreatedDate { get; set; } = DateTime.UtcNow;
 
     // Navigation properties

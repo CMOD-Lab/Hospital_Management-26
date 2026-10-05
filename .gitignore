@@ -1,2 +1,34 @@
+# Build output (dotnet build / publish) — safe to ignore; EC2 runs dotnet build after pull
+[Bb]in/
+[Oo]bj/
+[Ll]og/
+[Ll]ogs/
+publish/
+out/
+TestResults/
 
-Code/.vs/Clinic Management System/v15/.suo
+# Visual Studio / Rider / VS Code
+.vs/
+.vscode/
+.idea/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# NuGet / MSBuild cache under obj (covered by [Oo]bj/; explicit for clarity)
+project.lock.json
+*.nuget.props
+*.nuget.targets
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Local secrets only (keep appsettings.json in repo for templates)
+appsettings.Development.local.json
+appsettings.Local.json
+**/secrets.json
+
+# Legacy VS path
+Code/.vs/

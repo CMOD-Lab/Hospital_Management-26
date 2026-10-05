@@ -23,9 +23,9 @@
             <div class="col-md-3">
                 <label class="form-label">Category</label>
                 <select name="category" class="form-select" onchange="this.form.submit()">
-                    <option value="DOCTOR" @(Model.Category == "DOCTOR" ? "selected" : "")>Doctors</option>
-                    <option value="PATIENT" @(Model.Category == "PATIENT" ? "selected" : "")>Patients</option>
-                    <option value="OTHERSTAFF" @(Model.Category == "OTHERSTAFF" ? "selected" : "")>Other Staff</option>
+                    <option value="DOCTOR" selected="@(Model.Category == "DOCTOR")">Doctors</option>
+                    <option value="PATIENT" selected="@(Model.Category == "PATIENT")">Patients</option>
+                    <option value="OTHERSTAFF" selected="@(Model.Category == "OTHERSTAFF")">Other Staff</option>
                 </select>
             </div>
             <div class="col-md-6">

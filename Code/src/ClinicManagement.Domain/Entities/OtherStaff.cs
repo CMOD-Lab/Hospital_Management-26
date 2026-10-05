@@ -1,3 +1,5 @@
+using System.ComponentModel.DataAnnotations.Schema;
+
 namespace ClinicManagement.Domain.Entities;
 
 /// <summary>
@@ -14,6 +16,10 @@ public class OtherStaff
     public int Salary { get; set; }
     public string Designation { get; set; } = string.Empty;
     public string Qualification { get; set; } = string.Empty;
+
+    [NotMapped]
     public bool IsActive { get; set; } = true;
+
+    [NotMapped]
     public DateTime CreatedDate { get; set; } = DateTime.UtcNow;
 }

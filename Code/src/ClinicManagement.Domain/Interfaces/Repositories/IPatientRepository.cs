@@ -18,4 +18,5 @@ public interface IPatientRepository
     Task<IEnumerable<Patient>> SearchAsync(string searchQuery, CancellationToken cancellationToken = default);
     Task<(int status, int id)> ValidateLoginAsync(string email, string password, CancellationToken cancellationToken = default);
     Task<(int status, int id)> SignupAsync(Patient patient, CancellationToken cancellationToken = default);
+    Task<(int status, int id)> ValidateAdminLoginAsync(string email, string password, CancellationToken cancellationToken = default);
 }

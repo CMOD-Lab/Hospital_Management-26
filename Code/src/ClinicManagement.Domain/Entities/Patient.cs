@@ -1,3 +1,5 @@
+using System.ComponentModel.DataAnnotations.Schema;
+
 namespace ClinicManagement.Domain.Entities;
 
 /// <summary>
@@ -11,9 +13,17 @@ public class Patient
     public string Address { get; set; } = string.Empty;
     public DateTime BirthDate { get; set; }
     public string Gender { get; set; } = string.Empty;
+
+    [NotMapped]
     public string Email { get; set; } = string.Empty;
+
+    [NotMapped]
     public string Password { get; set; } = string.Empty;
+
+    [NotMapped]
     public bool IsActive { get; set; } = true;
+
+    [NotMapped]
     public DateTime CreatedDate { get; set; } = DateTime.UtcNow;
 
     // Navigation properties

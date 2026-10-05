@@ -7,7 +7,7 @@ using Microsoft.Extensions.Logging;
 namespace ClinicManagement.Infrastructure.Repositories;
 
 /// <summary>
-/// EF Core implementation of the bill repository.
+/// Bill data is stored on dbo.appointment (bill_amount, bill_status).
 /// </summary>
 public class BillRepository : IBillRepository
 {
@@ -20,84 +20,95 @@ public class BillRepository : IBillRepository
         _logger = logger;
     }
 
+    private static Bill MapFromAppointment(Appointment a)
+    {
+        LoginHelper.ApplyFreeSlot(a);
+        return new Bill
+        {
+            BillId = a.AppointmentId,
+            PatientId = a.PatientId,
+            AppointmentId = a.AppointmentId,
+            Amount = (decimal)(a.BillAmount ?? 0),
+            IsPaid = string.Equals(a.BillStatus, "paid", StringComparison.OrdinalIgnoreCase),
+            BillDate = a.AppointmentDate,
+            Description = a.Disease,
+            Patient = a.Patient,
+            Appointment = a
+        };
+    }
+
+    private IQueryable<Appointment> BillAppointments =>
+        _context.Appointments.AsNoTracking()
+            .Include(a => a.Patient)
+            .Include(a => a.Doctor)
+            .Where(a => a.BillAmount != null);
+
     public async Task<IEnumerable<Bill>> GetAllAsync(CancellationToken cancellationToken = default)
     {
-        return await _context.Bills.AsNoTracking()
-            .Include(b => b.Patient)
-            .Include(b => b.Appointment).ThenInclude(a => a!.Doctor)
-            .ToListAsync(cancellationToken);
+        var appointments = await BillAppointments.ToListAsync(cancellationToken);
+        return appointments.Select(MapFromAppointment);
     }
 
     public async Task<Bill?> GetByIdAsync(int id, CancellationToken cancellationToken = default)
     {
-        return await _context.Bills.AsNoTracking()
-            .Include(b => b.Patient)
-            .Include(b => b.Appointment)
-            .FirstOrDefaultAsync(b => b.BillId == id, cancellationToken);
+        var appointment = await BillAppointments.FirstOrDefaultAsync(a => a.AppointmentId == id, cancellationToken);
+        return appointment == null ? null : MapFromAppointment(appointment);
     }
 
-    public async Task<Bill> AddAsync(Bill bill, CancellationToken cancellationToken = default)
+    public Task<Bill> AddAsync(Bill bill, CancellationToken cancellationToken = default)
     {
-        _context.Bills.Add(bill);
-        await _context.SaveChangesAsync(cancellationToken);
-        return bill;
+        throw new NotSupportedException("Bills are created via appointment billing fields.");
     }
 
-    public async Task UpdateAsync(Bill bill, CancellationToken cancellationToken = default)
+    public Task UpdateAsync(Bill bill, CancellationToken cancellationToken = default)
     {
-        _context.Bills.Update(bill);
-        await _context.SaveChangesAsync(cancellationToken);
+        throw new NotSupportedException("Use MarkAsPaidAsync or MarkAsUnpaidAsync.");
     }
 
-    public async Task DeleteAsync(int id, CancellationToken cancellationToken = default)
+    public Task DeleteAsync(int id, CancellationToken cancellationToken = default)
     {
-        var bill = await _context.Bills.FindAsync(new object[] { id }, cancellationToken);
-        if (bill != null)
-        {
-            _context.Bills.Remove(bill);
-            await _context.SaveChangesAsync(cancellationToken);
-        }
+        throw new NotSupportedException("Bills are not deleted separately.");
     }
 
     public async Task<IEnumerable<Bill>> GetByPatientIdAsync(int patientId, CancellationToken cancellationToken = default)
     {
-        return await _context.Bills.AsNoTracking()
-            .Include(b => b.Appointment).ThenInclude(a => a!.Doctor)
-            .Where(b => b.PatientId == patientId)
-            .OrderByDescending(b => b.BillDate)
+        var appointments = await BillAppointments
+            .Where(a => a.PatientId == patientId)
+            .OrderByDescending(a => a.AppointmentDate)
             .ToListAsync(cancellationToken);
+        return appointments.Select(MapFromAppointment);
     }
 
     public async Task<IEnumerable<Bill>> GetByDoctorIdAsync(int doctorId, CancellationToken cancellationToken = default)
     {
-        return await _context.Bills.AsNoTracking()
-            .Include(b => b.Patient)
-            .Include(b => b.Appointment)
-            .Where(b => b.Appointment != null && b.Appointment.DoctorId == doctorId && !b.IsPaid)
+        var appointments = await _context.Appointments.AsNoTracking()
+            .Include(a => a.Patient)
+            .Where(a => a.DoctorId == doctorId
+                && a.Status == "Completed"
+                && (a.BillAmount == null || a.BillStatus == null))
             .ToListAsync(cancellationToken);
+        return appointments.Select(a => new Bill
+        {
+            BillId = a.AppointmentId,
+            PatientId = a.PatientId,
+            AppointmentId = a.AppointmentId,
+            Amount = 0,
+            IsPaid = false,
+            BillDate = a.AppointmentDate,
+            Patient = a.Patient,
+            Appointment = a
+        });
     }
 
     public async Task MarkAsPaidAsync(int doctorId, int appointmentId, CancellationToken cancellationToken = default)
     {
-        var bill = await _context.Bills
-            .Include(b => b.Appointment)
-            .FirstOrDefaultAsync(b => b.AppointmentId == appointmentId && b.Appointment != null && b.Appointment.DoctorId == doctorId, cancellationToken);
-        if (bill != null)
-        {
-            bill.IsPaid = true;
-            await _context.SaveChangesAsync(cancellationToken);
-        }
+        await _context.Database.ExecuteSqlRawAsync(
+            "SELECT dbo.finishedpaid({0}, {1})", doctorId, appointmentId);
     }
 
     public async Task MarkAsUnpaidAsync(int doctorId, int appointmentId, CancellationToken cancellationToken = default)
     {
-        var bill = await _context.Bills
-            .Include(b => b.Appointment)
-            .FirstOrDefaultAsync(b => b.AppointmentId == appointmentId && b.Appointment != null && b.Appointment.DoctorId == doctorId, cancellationToken);
-        if (bill != null)
-        {
-            bill.IsPaid = false;
-            await _context.SaveChangesAsync(cancellationToken);
-        }
+        await _context.Database.ExecuteSqlRawAsync(
+            "SELECT dbo.finishedunpaid({0}, {1})", doctorId, appointmentId);
     }
 }

@@ -61,7 +61,7 @@ try
     // Default redirect to login page
     app.MapGet("/", () => Results.Redirect("/Index"));
 
-    Log.Information("Clinic Management System starting up...");
+    Log.Information("MedicX 4 Health Care starting up...");
     app.Run();
 }
 catch (Exception ex)

@@ -14,13 +14,13 @@ The solution follows Clean Architecture with four layers:
 
 ### Prerequisites
 - .NET 8 SDK
-- SQL Server or SQL Server Express
+- PostgreSQL 14+ (local or AWS RDS)
 - Visual Studio 2022 or VS Code
 
 ### Database Setup
 1. Update the connection string in `src/ClinicManagement.Web/appsettings.json`
-2. Run the existing SQL scripts from `Database Files/` folder
-3. Or run EF Core migrations: `dotnet ef database update --project src/ClinicManagement.Infrastructure`
+2. Apply `postgresql-schema.sql` from the repository root to your PostgreSQL database
+3. See `docs/TRANSFORMATION_GAP_AND_REMEDIATION.md` for why code changes were required and how to run on PostgreSQL/RDS
 
 ### Running the Application
 ```bash

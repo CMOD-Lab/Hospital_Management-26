@@ -24,8 +24,7 @@ public static class ServiceCollectionExtensions
                     maxRetryDelay: TimeSpan.FromSeconds(30),
                     errorCodesToAdd: null);
                 npgsqlOptions.MigrationsHistoryTable("__ef_migrations_history", "public");
-            })
-            .UseSnakeCaseNamingConvention());
+            }));
 
         services.AddScoped<IPatientRepository, PatientRepository>();
         services.AddScoped<IDoctorRepository, DoctorRepository>();

@@ -63,10 +63,11 @@ public class IndexModel : PageModel
             return RedirectToPage("/Doctor/DoctorHome");
         }
 
-        // Check for admin (hardcoded admin credentials for demo)
-        if (loginEmail == "admin@clinic.com" && loginPassword == "admin123")
+        // Admin login (dbo.logintable type = 3)
+        var adminLogin = await _patientService.ValidateAdminLoginAsync(loginDto);
+        if (adminLogin.Status == 0)
         {
-            HttpContext.Session.SetInt32("idoriginal", 1);
+            HttpContext.Session.SetInt32("idoriginal", adminLogin.UserId);
             HttpContext.Session.SetInt32("userType", 3);
             _logger.LogInformation("Admin logged in");
             return RedirectToPage("/Admin/AdminHome");

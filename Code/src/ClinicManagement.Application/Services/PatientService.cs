@@ -47,6 +47,24 @@ public class PatientService
     }
 
     /// <summary>
+    /// Validates admin login credentials (logintable type 3).
+    /// </summary>
+    public async Task<LoginResultDto> ValidateAdminLoginAsync(LoginDto loginDto, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var (status, id) = await _patientRepository.ValidateAdminLoginAsync(
+                loginDto.Email, loginDto.Password, cancellationToken);
+            return new LoginResultDto { Status = status, UserId = id, UserType = status == 0 ? 3 : 0 };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error validating admin login");
+            return new LoginResultDto { Status = -1, UserId = 0, UserType = 0 };
+        }
+    }
+
+    /// <summary>
     /// Registers a new patient.
     /// </summary>
     public async Task<(int status, int id)> SignupAsync(PatientCreateDto dto, CancellationToken cancellationToken = default)

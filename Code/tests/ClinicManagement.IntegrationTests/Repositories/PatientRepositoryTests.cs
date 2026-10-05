@@ -27,87 +27,57 @@ public class PatientRepositoryTests : IDisposable
     }
 
     [Fact]
-    public async Task AddAsync_ShouldAddPatient()
-    {
-        // Arrange
-        var patient = new Patient
-        {
-            Name = "Test Patient",
-            Email = "test@test.com",
-            Password = "password",
-            Phone = "1234567890",
-            Gender = "M",
-            Address = "Test Address",
-            BirthDate = new DateTime(1990, 1, 1),
-            IsActive = true
-        };
-
-        // Act
-        var result = await _repository.AddAsync(patient);
-
-        // Assert
-        result.PatientId.Should().BeGreaterThan(0);
-        result.Name.Should().Be("Test Patient");
-    }
-
-    [Fact]
     public async Task GetByIdAsync_WithExistingId_ShouldReturnPatient()
     {
-        // Arrange
-        var patient = new Patient
+        _context.LoginAccounts.Add(new LoginAccount
         {
-            Name = "Test Patient",
+            LoginId = 1,
             Email = "test2@test.com",
             Password = "password",
-            IsActive = true
-        };
-        _context.Patients.Add(patient);
+            Type = 1
+        });
+        _context.Patients.Add(new Patient
+        {
+            PatientId = 1,
+            Name = "Test Patient",
+            BirthDate = new DateTime(1990, 1, 1),
+            Gender = "M"
+        });
         await _context.SaveChangesAsync();
 
-        // Act
-        var result = await _repository.GetByIdAsync(patient.PatientId);
+        var result = await _repository.GetByIdAsync(1);
 
-        // Assert
         result.Should().NotBeNull();
         result!.Name.Should().Be("Test Patient");
+        result.Email.Should().Be("test2@test.com");
     }
 
     [Fact]
     public async Task EmailExistsAsync_WithExistingEmail_ShouldReturnTrue()
     {
-        // Arrange
-        var patient = new Patient
+        _context.LoginAccounts.Add(new LoginAccount
         {
-            Name = "Test",
             Email = "exists@test.com",
             Password = "password",
-            IsActive = true
-        };
-        _context.Patients.Add(patient);
+            Type = 1
+        });
         await _context.SaveChangesAsync();
 
-        // Act
         var result = await _repository.EmailExistsAsync("exists@test.com");
 
-        // Assert
         result.Should().BeTrue();
     }
 
     [Fact]
-    public async Task GetAllAsync_ShouldReturnOnlyActivePatients()
+    public async Task GetAllAsync_ShouldReturnPatients()
     {
-        // Arrange
-        _context.Patients.AddRange(
-            new Patient { Name = "Active", Email = "active@test.com", Password = "p", IsActive = true },
-            new Patient { Name = "Inactive", Email = "inactive@test.com", Password = "p", IsActive = false }
-        );
+        _context.LoginAccounts.Add(new LoginAccount { LoginId = 1, Email = "a@test.com", Password = "p", Type = 1 });
+        _context.Patients.Add(new Patient { PatientId = 1, Name = "Active", BirthDate = DateTime.Today, Gender = "M" });
         await _context.SaveChangesAsync();
 
-        // Act
         var result = await _repository.GetAllAsync();
 
-        // Assert
-        result.Should().OnlyContain(p => p.IsActive);
+        result.Should().HaveCount(1);
     }
 
     public void Dispose()

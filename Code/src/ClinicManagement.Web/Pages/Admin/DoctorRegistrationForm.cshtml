@@ -36,7 +36,7 @@
             <div class="row">
                 <div class="col-md-6 mb-3">
                     <label class="form-label">Password *</label>
-                    <input type="password" name="Password" class="form-control" required maxlength="30" />
+                    <input type="password" name="Password" class="form-control" required maxlength="20" />
                 </div>
                 <div class="col-md-6 mb-3">
                     <label class="form-label">Date of Birth *</label>
@@ -50,7 +50,7 @@
                         <option value="0">Select Department</option>
                         @foreach (var dept in Model.Departments)
                         {
-                            <option value="@dept.DeptNo" @(Model.Input.DeptNo == dept.DeptNo ? "selected" : "")>@dept.DeptName</option>
+                            <option value="@dept.DeptNo" selected="@(Model.Input.DeptNo == dept.DeptNo)">@dept.DeptName</option>
                         }
                     </select>
                 </div>
@@ -58,8 +58,8 @@
                     <label class="form-label">Gender *</label>
                     <select name="Gender" class="form-select" required>
                         <option value="">Select Gender</option>
-                        <option value="M" @(Model.Input.Gender == "M" ? "selected" : "")>Male</option>
-                        <option value="F" @(Model.Input.Gender == "F" ? "selected" : "")>Female</option>
+                        <option value="M" selected="@(Model.Input.Gender == "M")">Male</option>
+                        <option value="F" selected="@(Model.Input.Gender == "F")">Female</option>
                     </select>
                 </div>
             </div>

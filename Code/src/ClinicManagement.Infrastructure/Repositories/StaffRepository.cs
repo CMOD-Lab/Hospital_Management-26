@@ -3,6 +3,7 @@ using ClinicManagement.Domain.Interfaces.Repositories;
 using ClinicManagement.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using Npgsql;
 
 namespace ClinicManagement.Infrastructure.Repositories;
 
@@ -22,9 +23,7 @@ public class StaffRepository : IStaffRepository
 
     public async Task<IEnumerable<OtherStaff>> GetAllAsync(CancellationToken cancellationToken = default)
     {
-        return await _context.OtherStaff.AsNoTracking()
-            .Where(s => s.IsActive)
-            .ToListAsync(cancellationToken);
+        return await _context.OtherStaff.AsNoTracking().ToListAsync(cancellationToken);
     }
 
     public async Task<OtherStaff?> GetByIdAsync(int id, CancellationToken cancellationToken = default)
@@ -35,9 +34,32 @@ public class StaffRepository : IStaffRepository
 
     public async Task<OtherStaff> AddAsync(OtherStaff staff, CancellationToken cancellationToken = default)
     {
-        _context.OtherStaff.Add(staff);
-        await _context.SaveChangesAsync(cancellationToken);
-        return staff;
+        await using var connection = (NpgsqlConnection)_context.Database.GetDbConnection();
+        if (connection.State != System.Data.ConnectionState.Open)
+        {
+            await connection.OpenAsync(cancellationToken);
+        }
+
+        await using var command = new NpgsqlCommand(
+            @"SELECT dbo.addstaff(
+                @name, @birthdate, @phone, @gender, @designation, @address, @salary, @qualification)",
+            connection);
+
+        command.Parameters.AddWithValue("name", staff.Name);
+        command.Parameters.Add(PostgresCommandHelper.DateParameter("birthdate", staff.BirthDate));
+        command.Parameters.AddWithValue("phone", staff.Phone);
+        command.Parameters.AddWithValue("gender", staff.Gender);
+        command.Parameters.AddWithValue("designation", staff.Designation);
+        command.Parameters.AddWithValue("address", staff.Address);
+        command.Parameters.AddWithValue("salary", staff.Salary);
+        command.Parameters.AddWithValue("qualification", staff.Qualification);
+
+        await command.ExecuteNonQueryAsync(cancellationToken);
+
+        var created = await _context.OtherStaff.AsNoTracking()
+            .OrderByDescending(s => s.StaffId)
+            .FirstAsync(cancellationToken);
+        return created;
     }
 
     public async Task UpdateAsync(OtherStaff staff, CancellationToken cancellationToken = default)
@@ -48,12 +70,7 @@ public class StaffRepository : IStaffRepository
 
     public async Task DeleteAsync(int id, CancellationToken cancellationToken = default)
     {
-        var staff = await _context.OtherStaff.FindAsync(new object[] { id }, cancellationToken);
-        if (staff != null)
-        {
-            staff.IsActive = false;
-            await _context.SaveChangesAsync(cancellationToken);
-        }
+        await _context.Database.ExecuteSqlRawAsync("SELECT dbo.deletestaff({0})", id);
     }
 
     public async Task<bool> ExistsAsync(int id, CancellationToken cancellationToken = default)
@@ -64,7 +81,7 @@ public class StaffRepository : IStaffRepository
     public async Task<IEnumerable<OtherStaff>> SearchAsync(string searchQuery, CancellationToken cancellationToken = default)
     {
         return await _context.OtherStaff.AsNoTracking()
-            .Where(s => s.IsActive && s.Name.Contains(searchQuery))
+            .Where(s => s.Name.Contains(searchQuery))
             .ToListAsync(cancellationToken);
     }
 }

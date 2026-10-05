@@ -20,7 +20,7 @@
                     <option value="">Select Department</option>
                     @foreach (var dept in Model.Departments)
                     {
-                        <option value="@dept.DeptName" @(Model.SelectedDept == dept.DeptName ? "selected" : "")>@dept.DeptName</option>
+                        <option value="@dept.DeptName" selected="@(Model.SelectedDept == dept.DeptName)">@dept.DeptName</option>
                     }
                 </select>
             </div>

@@ -20,26 +20,50 @@ public class AppointmentRepository : IAppointmentRepository
         _logger = logger;
     }
 
+    private static void Enrich(Appointment appointment)
+    {
+        LoginHelper.ApplyFreeSlot(appointment);
+    }
+
+    private static void EnrichAll(IEnumerable<Appointment> appointments)
+    {
+        foreach (var appointment in appointments)
+        {
+            Enrich(appointment);
+        }
+    }
+
     public async Task<IEnumerable<Appointment>> GetAllAsync(CancellationToken cancellationToken = default)
     {
-        return await _context.Appointments.AsNoTracking()
+        var list = await _context.Appointments.AsNoTracking()
             .Include(a => a.Doctor)
             .Include(a => a.Patient)
             .ToListAsync(cancellationToken);
+        EnrichAll(list);
+        return list;
     }
 
     public async Task<Appointment?> GetByIdAsync(int id, CancellationToken cancellationToken = default)
     {
-        return await _context.Appointments.AsNoTracking()
+        var appointment = await _context.Appointments.AsNoTracking()
             .Include(a => a.Doctor)
             .Include(a => a.Patient)
             .FirstOrDefaultAsync(a => a.AppointmentId == id, cancellationToken);
+        if (appointment != null)
+        {
+            Enrich(appointment);
+        }
+        return appointment;
     }
 
     public async Task<Appointment> AddAsync(Appointment appointment, CancellationToken cancellationToken = default)
     {
+        appointment.AppointmentDate = LegacyAppointmentMapping.BuildAppointmentTimestamp(appointment.FreeSlot);
+        appointment.Status = "Pending";
+        appointment.PatientNotification = 1;
         _context.Appointments.Add(appointment);
         await _context.SaveChangesAsync(cancellationToken);
+        Enrich(appointment);
         return appointment;
     }
 
@@ -54,7 +78,8 @@ public class AppointmentRepository : IAppointmentRepository
         var appointment = await _context.Appointments.FindAsync(new object[] { id }, cancellationToken);
         if (appointment != null)
         {
-            _context.Appointments.Remove(appointment);
+            appointment.Status = "Cancelled";
+            appointment.PatientNotification = 2;
             await _context.SaveChangesAsync(cancellationToken);
         }
     }
@@ -66,76 +91,105 @@ public class AppointmentRepository : IAppointmentRepository
 
     public async Task<IEnumerable<Appointment>> GetByPatientIdAsync(int patientId, CancellationToken cancellationToken = default)
     {
-        return await _context.Appointments.AsNoTracking()
+        var list = await _context.Appointments.AsNoTracking()
             .Include(a => a.Doctor)
             .Where(a => a.PatientId == patientId)
             .OrderByDescending(a => a.AppointmentDate)
             .ToListAsync(cancellationToken);
+        EnrichAll(list);
+        return list;
     }
 
     public async Task<IEnumerable<Appointment>> GetByDoctorIdAsync(int doctorId, CancellationToken cancellationToken = default)
     {
-        return await _context.Appointments.AsNoTracking()
+        var list = await _context.Appointments.AsNoTracking()
             .Include(a => a.Patient)
             .Where(a => a.DoctorId == doctorId)
             .OrderByDescending(a => a.AppointmentDate)
             .ToListAsync(cancellationToken);
+        EnrichAll(list);
+        return list;
     }
 
     public async Task<IEnumerable<Appointment>> GetPendingByDoctorIdAsync(int doctorId, CancellationToken cancellationToken = default)
     {
-        return await _context.Appointments.AsNoTracking()
+        var list = await _context.Appointments.AsNoTracking()
             .Include(a => a.Patient)
             .Where(a => a.DoctorId == doctorId && a.Status == "Pending")
             .OrderBy(a => a.AppointmentDate)
             .ToListAsync(cancellationToken);
+        EnrichAll(list);
+        return list;
     }
 
     public async Task<IEnumerable<Appointment>> GetTodaysByDoctorIdAsync(int doctorId, CancellationToken cancellationToken = default)
     {
         var today = DateTime.Today;
-        return await _context.Appointments.AsNoTracking()
+        var list = await _context.Appointments.AsNoTracking()
             .Include(a => a.Patient)
-            .Where(a => a.DoctorId == doctorId && a.AppointmentDate.Date == today && a.Status == "Approved")
-            .OrderBy(a => a.FreeSlot)
+            .Where(a => a.DoctorId == doctorId
+                && a.AppointmentDate.Date == today
+                && a.Status == "Approved")
+            .OrderBy(a => a.AppointmentDate)
             .ToListAsync(cancellationToken);
+        EnrichAll(list);
+        return list;
     }
 
     public async Task<Appointment?> GetCurrentByPatientIdAsync(int patientId, CancellationToken cancellationToken = default)
     {
         var today = DateTime.Today;
-        return await _context.Appointments.AsNoTracking()
+        var appointment = await _context.Appointments.AsNoTracking()
             .Include(a => a.Doctor)
-            .FirstOrDefaultAsync(a => a.PatientId == patientId && a.AppointmentDate.Date == today && a.Status == "Approved", cancellationToken);
+            .Where(a => a.PatientId == patientId
+                && a.AppointmentDate.Date == today
+                && (a.Status == "Approved" || a.Status == "Pending"))
+            .OrderByDescending(a => a.AppointmentDate)
+            .FirstOrDefaultAsync(cancellationToken);
+        if (appointment != null)
+        {
+            Enrich(appointment);
+        }
+        return appointment;
     }
 
     public async Task<Appointment?> GetPendingFeedbackByPatientIdAsync(int patientId, CancellationToken cancellationToken = default)
     {
-        return await _context.Appointments.AsNoTracking()
+        var appointment = await _context.Appointments.AsNoTracking()
             .Include(a => a.Doctor)
-            .FirstOrDefaultAsync(a => a.PatientId == patientId && a.Status == "Completed" && !a.FeedbackGiven, cancellationToken);
+            .FirstOrDefaultAsync(a => a.PatientId == patientId
+                && a.Status == "Completed"
+                && !a.FeedbackGiven, cancellationToken);
+        if (appointment != null)
+        {
+            Enrich(appointment);
+        }
+        return appointment;
     }
 
     public async Task<IEnumerable<Appointment>> GetNotificationsByPatientIdAsync(int patientId, CancellationToken cancellationToken = default)
     {
-        return await _context.Appointments.AsNoTracking()
+        var list = await _context.Appointments.AsNoTracking()
             .Include(a => a.Doctor)
-            .Where(a => a.PatientId == patientId && a.Status == "Approved")
+            .Where(a => a.PatientId == patientId && a.PatientNotification == 2)
             .OrderByDescending(a => a.AppointmentDate)
             .ToListAsync(cancellationToken);
+        EnrichAll(list);
+        return list;
     }
 
     public async Task<IEnumerable<int>> GetFreeSlotsAsync(int doctorId, int patientId, CancellationToken cancellationToken = default)
     {
-        // Get all slots (1-10) and exclude already booked ones for this doctor today
         var today = DateTime.Today;
-        var bookedSlots = await _context.Appointments.AsNoTracking()
-            .Where(a => a.DoctorId == doctorId && a.AppointmentDate.Date == today && a.Status != "Cancelled")
-            .Select(a => a.FreeSlot)
+        var bookedHours = await _context.Appointments.AsNoTracking()
+            .Where(a => a.DoctorId == doctorId
+                && a.AppointmentDate.Date == today
+                && a.Status != "Cancelled")
+            .Select(a => a.AppointmentDate.Hour)
             .ToListAsync(cancellationToken);
 
-        var allSlots = Enumerable.Range(1, 10);
-        return allSlots.Except(bookedSlots);
+        return Enumerable.Range(1, 10)
+            .Where(slot => !bookedHours.Contains(LegacyAppointmentMapping.SlotToHour(slot)));
     }
 
     public async Task ApproveAsync(int appointmentId, CancellationToken cancellationToken = default)
@@ -144,6 +198,7 @@ public class AppointmentRepository : IAppointmentRepository
         if (appointment != null)
         {
             appointment.Status = "Approved";
+            appointment.PatientNotification = 2;
             await _context.SaveChangesAsync(cancellationToken);
         }
     }
@@ -168,6 +223,8 @@ public class AppointmentRepository : IAppointmentRepository
             appointment.Progress = progress;
             appointment.Prescription = prescription;
             appointment.Status = "Completed";
+            appointment.PatientNotification = 2;
+            appointment.FeedbackGiven = false;
             await _context.SaveChangesAsync(cancellationToken);
         }
     }
