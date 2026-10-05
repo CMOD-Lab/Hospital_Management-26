@@ -1,0 +1,51 @@
+/* Clinic Management System - Site CSS */
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #f8f9fa;
+}
+
+.navbar-brand {
+    font-weight: bold;
+    font-size: 1.3rem;
+}
+
+.card {
+    border-radius: 10px;
+    border: none;
+}
+
+.card-header {
+    border-radius: 10px 10px 0 0 !important;
+}
+
+.btn {
+    border-radius: 6px;
+}
+
+.table th {
+    font-weight: 600;
+}
+
+.footer {
+    margin-top: 50px;
+    border-top: 1px solid #dee2e6;
+}
+
+/* Login page */
+.min-vh-100 {
+    min-height: 100vh;
+}
+
+/* Dashboard cards */
+.card.bg-primary,
+.card.bg-success,
+.card.bg-warning {
+    border-radius: 10px;
+}
+
+/* Responsive table */
+.table-responsive {
+    border-radius: 8px;
+    overflow: hidden;
+}

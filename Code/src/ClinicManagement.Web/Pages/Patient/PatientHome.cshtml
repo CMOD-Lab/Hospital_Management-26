@@ -1,0 +1,109 @@
+@page
+@model ClinicManagement.Web.Pages.Patient.PatientHomeModel
+@{
+    ViewData["Title"] = "Patient Home";
+}
+
+<div class="row mb-4">
+    <div class="col-12">
+        <h2><i class="fas fa-user me-2"></i>Patient Dashboard</h2>
+        <hr />
+    </div>
+</div>
+
+@if (Model.Patient != null)
+{
+    <div class="row">
+        <div class="col-md-4">
+            <div class="card shadow text-center">
+                <div class="card-body py-4">
+                    <i class="fas fa-user-circle fa-5x text-success mb-3"></i>
+                    <h4>@Model.Patient.Name</h4>
+                    <p class="text-muted">Patient ID: @Model.Patient.PatientId</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-8">
+            <div class="card shadow">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">Personal Information</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p><strong>Email:</strong> @Model.Patient.Email</p>
+                            <p><strong>Phone:</strong> @Model.Patient.Phone</p>
+                            <p><strong>Gender:</strong> @Model.Patient.Gender</p>
+                        </div>
+                        <div class="col-md-6">
+                            <p><strong>Age:</strong> @Model.Patient.Age years</p>
+                            <p><strong>Address:</strong> @Model.Patient.Address</p>
+                            <p><strong>Birth Date:</strong> @Model.Patient.BirthDate.ToString("yyyy-MM-dd")</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Current Appointment -->
+    @if (Model.CurrentAppointment != null)
+    {
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="card shadow border-success">
+                    <div class="card-header bg-success text-white">
+                        <h5 class="mb-0"><i class="fas fa-calendar-check me-2"></i>Today's Appointment</h5>
+                    </div>
+                    <div class="card-body">
+                        <p><strong>Doctor:</strong> @Model.CurrentAppointment.DoctorName</p>
+                        <p><strong>Timings:</strong> @Model.CurrentAppointment.Timings</p>
+                        <p><strong>Status:</strong> <span class="badge bg-success">@Model.CurrentAppointment.Status</span></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header bg-secondary text-white">
+                    <h5 class="mb-0">Quick Actions</h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex flex-wrap gap-2">
+                        <a asp-page="/Patient/ViewDoctors" class="btn btn-primary">
+                            <i class="fas fa-user-md me-1"></i>View Doctors
+                        </a>
+                        <a asp-page="/Patient/TakeAppointment" class="btn btn-success">
+                            <i class="fas fa-calendar-plus me-1"></i>Take Appointment
+                        </a>
+                        <a asp-page="/Patient/CurrentAppointment" class="btn btn-info">
+                            <i class="fas fa-calendar-check me-1"></i>Current Appointment
+                        </a>
+                        <a asp-page="/Patient/TreatmentHistory" class="btn btn-warning">
+                            <i class="fas fa-history me-1"></i>Treatment History
+                        </a>
+                        <a asp-page="/Patient/BillsHistory" class="btn btn-secondary">
+                            <i class="fas fa-file-invoice me-1"></i>Bills History
+                        </a>
+                        <a asp-page="/Patient/PatientNotifications" class="btn btn-dark">
+                            <i class="fas fa-bell me-1"></i>Notifications
+                        </a>
+                        <a asp-page="/Patient/PatientFeedback" class="btn btn-outline-primary">
+                            <i class="fas fa-star me-1"></i>Feedback
+                        </a>
+                        <a asp-page="/Index" class="btn btn-danger">
+                            <i class="fas fa-sign-out-alt me-1"></i>Logout
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+else
+{
+    <div class="alert alert-danger">Error loading patient information.</div>
+}
