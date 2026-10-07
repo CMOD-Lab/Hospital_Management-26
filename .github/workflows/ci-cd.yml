@@ -1,0 +1,87 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ release/1.0.0, develop ]
+  pull_request:
+    branches: [ release/1.0.0 ]
+  workflow_dispatch:
+
+defaults:
+  run:
+    working-directory: Code
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Restore
+        run: dotnet restore ClinicManagement.sln
+
+      - name: Build
+        run: dotnet build ClinicManagement.sln --configuration Release --no-restore
+
+      - name: Test
+        run: |
+          dotnet test ClinicManagement.sln \
+            --configuration Release \
+            --no-build \
+            --verbosity normal \
+            --logger "trx;LogFileName=test-results.trx" \
+            --results-directory "${{ runner.temp }}/test-results"
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: ${{ runner.temp }}/test-results/*.trx
+
+  deploy:
+    needs: build-and-test
+    if: |
+      (github.ref == 'refs/heads/release/1.0.0' && success()) ||
+      github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: Code
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Publish
+        run: |
+          dotnet publish src/ClinicManagement.Web/ClinicManagement.Web.csproj \
+            -c Release \
+            -o ./publish
+
+      - name: Setup SSH with PEM
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H "${{ secrets.EC2_HOST }}" >> ~/.ssh/known_hosts
+
+      - name: Sync to EC2
+        run: |
+          rsync -avz --delete \
+            -e "ssh -i ~/.ssh/id_rsa" \
+            ./publish/ \
+            ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:/home/ec2-user/Hospital_Management/Hospital_Management-26/hms-publish/
+
+      - name: Restart app
+        run: |
+          ssh -i ~/.ssh/id_rsa ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} \
+            'sudo systemctl restart hms.service && sudo systemctl is-active hms.service'
